@@ -1,6 +1,9 @@
 import mongoose  from 'mongoose'
 
-const mongouri="mongodb://razu009:razu008@31.97.181.120:27017/cashapp?replicaSet=rs0&authSource=cashapp"
+
+const mongouri="mongodb://mostak009:mostak00008@31.97.181.120:27017/mosapp?replicaSet=rs0&authSource=mosapp"
+
+// const mongouri="mongodb://razu009:razu008@31.97.181.120:27017/cashapp?replicaSet=rs0&authSource=cashapp"
 
 const connectDB = () => {
 
