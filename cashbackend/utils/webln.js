@@ -5,7 +5,7 @@ let nwc = null;
 
 export const initNwc = async () => {
   const nwcUrl =
-    'nostr+walletconnect://741a6899cabc547cc5712f675d35d6864da4580aa82808866f38e50813af8eaa?relay=wss://relay.getalby.com&relay=wss://relay2.getalby.com&secret=7e92a79f911e7ad61632dfb79c8ac89d967332976e9b34049d82aae1fbf6cee1&lud16=relishambitious358013@getalby.com';
+    'nostr+walletconnect://281ad7f809cefe2b4b21f3fffacd6f8c0c419313546d44b80ff050c2f8190624?relay=wss://relay.getalby.com&relay=wss://relay2.getalby.com&secret=8ff5e1ae32b100a2f36b6e79f980a41c0c8ea811bb9e44125cc5b169f5a072f5&lud16=celebratedlake54101@getalby.com';
   if (!nwcUrl) {
     console.warn(
       'ALBY_NWC_URL is not set in environment variables. WebLN/NWC provider will not be active.'
