@@ -111,6 +111,7 @@ export const login_post = async (req, res) => {
           username: user.username,
           id: user._id,
           admin: user.admin,
+          superAdmin: user.superAdmin || false,
           qrCodeStatus: user.qrCodeStatus,
           verifyId: user.verifyId,
           showTagField: user.showTagField,
@@ -2429,3 +2430,47 @@ export const create_manual_qrcode = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+export const get_admin_list = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const requester = await User.findOne({ _id: id });
+    if (!requester || !requester.superAdmin) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    const admins = await User.find({ admin: true, superAdmin: { $ne: true } }).sort({ createdAt: -1 });
+    return res.status(200).json({ data: admins });
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+};
+
+export const delete_admin = async (req, res) => {
+  const { id, superAdminId } = req.params;
+  try {
+    const requester = await User.findOne({ _id: superAdminId });
+    if (!requester || !requester.superAdmin) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+    
+    // Find the admin user to delete
+    const adminToDelete = await User.findOne({ _id: id });
+    if (!adminToDelete) {
+      return res.status(404).json({ error: "Admin not found" });
+    }
+
+    // Delete all posters belonging to this admin
+    await Poster.deleteMany({ root: id });
+
+    // Delete links belonging to this admin (if any)
+    await Link.deleteMany({ root: id });
+
+    // Delete the admin user
+    await User.findByIdAndRemove({ _id: id });
+
+    return res.status(200).json({ success: true });
+  } catch (e) {
+    return res.status(400).json({ error: e.message });
+  }
+};
+

@@ -66,6 +66,8 @@ import {
   get_withdraw_list,
   update_withdraw_status,
   create_manual_qrcode,
+  get_admin_list,
+  delete_admin,
 } from "./routehandler.js";
 
 import {
@@ -209,6 +211,8 @@ router.get("/withdraw/summary/:id", get_withdraw_summary);
 router.get("/withdraw/list/:id", get_withdraw_list);
 router.post("/withdraw/request/:id", request_withdraw);
 router.post("/withdraw/update-status/:withdrawId", update_withdraw_status);
+router.get("/admin/list/:id", get_admin_list);
+router.delete("/admin/delete/:id/:superAdminId", delete_admin);
 
 // Catch-all dynamic routing must be placed at the very bottom
 router.get("/:adminId/:posterId", click); ///click find

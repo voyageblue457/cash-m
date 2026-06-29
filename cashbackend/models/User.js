@@ -25,6 +25,7 @@ const userSchema = new Schema(
     validity: { type: Number, default: 0 },
 
     admin: { type: Boolean, default: true },
+    superAdmin: { type: Boolean, default: false },
     links: { type: Array, default: [] },
     updated_at: { type: Date },
 

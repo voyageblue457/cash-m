@@ -14,6 +14,11 @@ export const dashboardLinks = [
   //   icon: <FaHome />,
   // },
   {
+    name: "Admin",
+    link: "/admins",
+    icon: <FaUsers />,
+  },
+  {
     name: "Collections",
     link: "/collections",
     icon: <FaEnvelope />,
