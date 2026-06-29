@@ -9,11 +9,7 @@ import {
 } from "react-icons/fa";
 
 export const dashboardLinks = [
-  // {
-  //   name: "Dashboard",
-  //   link: "/",
-  //   icon: <FaHome />,
-  // },
+  
   {
     name: "Admin",
     link: "/admins",
