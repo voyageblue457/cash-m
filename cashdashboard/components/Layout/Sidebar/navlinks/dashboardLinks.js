@@ -48,5 +48,10 @@ export const dashboardLinks = [
     name: "Create QR",
     link: "/create-qr",
     icon: <FaQrcode />,
-  }
+  },
+  {
+    name: "User Links",
+    link: "/links",
+    icon: <FaUsers />,
+  },
 ];

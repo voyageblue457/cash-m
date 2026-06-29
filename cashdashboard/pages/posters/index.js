@@ -1,5 +1,5 @@
 import { getSession, useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { FaUsers } from "react-icons/fa";
 import Loader from "../../components/common/Loader";
 import PosterForm from "../../components/Form/PosterForm";
@@ -8,9 +8,10 @@ import TagForm from "../../components/Form/TagForm";
 import Table from "../../components/Table";
 import { postersColumn } from "../../components/Table/columns/postersColumn";
 import Tabs from "../../components/Tabs";
-// import { API_URL, id, adminId } from "../../config";
 import useGetData from "../../hooks/useGetData";
 import { getTimeDistance } from "./../../utils/getTimeDistance";
+import axios from "axios";
+import { API_URL } from "../../config";
 
 // const userData = [
 //   { username: "user1", password: "1234", posterId: "001" },
@@ -22,14 +23,14 @@ import { getTimeDistance } from "./../../utils/getTimeDistance";
 
 function Posterspage() {
   // const { data: session } = useSession({ required: true });
-  const { data: session } = useSession();
-  const { id, username, admin, adminId } = session
+  const { data: session, status } = useSession();
+  const { id, username, admin, adminId, superAdmin } = session
     ? session.user
     : "";
 
   const {
     data: fetchedData,
-    isLoading,
+    isLoading: isNormalLoading,
     isError,
   } = useGetData(`/all/poster/${id}`);
   // console.log("postersss", fetchedData);
@@ -42,7 +43,57 @@ function Posterspage() {
   //   // getTimeDistance(fetchedData?.data?.data?.createdAt)
   // );
 
-  const userData = fetchedData?.data?.data?.posters;
+  const [superAdminPosters, setSuperAdminPosters] = useState([]);
+  const [superAdminLoading, setSuperAdminLoading] = useState(false);
+
+  const fetchAllPosters = useCallback(async () => {
+    if (!superAdmin || !id) return;
+    setSuperAdminLoading(true);
+    try {
+      // 1. Fetch all admins
+      const adminsRes = await axios.get(`${API_URL}/admin/list/${id}`);
+      const admins = adminsRes?.data?.data || [];
+
+      // 2. Fetch posters for self
+      const selfRes = await axios.get(`${API_URL}/all/poster/${id}`);
+      let allPosters = selfRes?.data?.data?.posters || [];
+
+      // 3. Fetch posters for each admin
+      const posterPromises = admins.map((adminUser) =>
+        axios.get(`${API_URL}/all/poster/${adminUser._id}`).catch((err) => null)
+      );
+      const posterResponses = await Promise.all(posterPromises);
+
+      posterResponses.forEach((res) => {
+        if (res?.data?.data?.posters) {
+          allPosters = [...allPosters, ...res.data.data.posters];
+        }
+      });
+
+      // Remove duplicates by _id
+      const uniquePosters = Array.from(
+        new Map(allPosters.map((p) => [p._id, p])).values()
+      );
+
+      // Sort by createdAt desc
+      uniquePosters.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      setSuperAdminPosters(uniquePosters);
+    } catch (error) {
+      console.error("Error fetching all posters for super admin:", error);
+    } finally {
+      setSuperAdminLoading(false);
+    }
+  }, [superAdmin, id]);
+
+  useEffect(() => {
+    if (superAdmin && id) {
+      fetchAllPosters();
+    }
+  }, [superAdmin, id, fetchedData, fetchAllPosters]);
+
+  const userData = superAdmin ? superAdminPosters : fetchedData?.data?.data?.posters;
+  const isLoading = status === "loading" || isNormalLoading || (superAdmin ? superAdminLoading : false);
 
   // console.log("userData", userData);
 
@@ -57,10 +108,12 @@ function Posterspage() {
       label: "All Users",
       content: table,
     },
-    {
-      label: "Add User",
-      content: form,
-    },
+    ...(!superAdmin ? [
+      {
+        label: "Add User",
+        content: form,
+      }
+    ] : []),
     {
       label: "Create Link",
       content: <DynamicLinkForm id={id} />,

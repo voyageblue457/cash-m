@@ -9,6 +9,7 @@ import useGetData from "../hooks/useGetData";
 import { getTimeDistance } from "../utils/getTimeDistance";
 import DeleteAdmin from "../components/DeleteAdmin";
 import Modal from "../components/Modal";
+import EditAdmin from "../components/EditAdmin";
 
 function ViewLinksCell({ links }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -99,6 +100,7 @@ const adminsColumn = [
     disableSortBy: true,
     Cell: ({ row }) => (
       <div className="flex justify-center items-center gap-2">
+        <EditAdmin adminInfo={row.original} />
         <DeleteAdmin adminInfo={row.original} />
       </div>
     ),

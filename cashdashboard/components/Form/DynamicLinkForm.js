@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as Yup from "yup";
 import { Form, Formik } from "formik";
 import usePostData from "../../hooks/usePostData";
@@ -9,8 +9,13 @@ import axios from "axios";
 import { API_URL } from "../../config";
 import { FaCopy, FaExternalLinkAlt, FaTrashAlt, FaLock, FaArrowRight, FaCheck } from "react-icons/fa";
 import { useQRCode } from "next-qrcode";
+import { useSession } from "next-auth/react";
 
 function DynamicLinkForm({ id }) {
+  const { data: session } = useSession();
+  const admin = session?.user?.admin;
+  const superAdmin = session?.user?.superAdmin;
+
   const { mutate, isLoading } = usePostData({
     path: "/link/add",
     revalidate: `/link/get/${id}`,
@@ -139,21 +144,134 @@ function DynamicLinkForm({ id }) {
   const { data: fetchedData } = useGetData(`/link/get/${id}`);
   const fetchedLinks = fetchedData?.data?.users || fetchedData?.users;
 
-  const { data: fetchedDynamicLinks, refetch: refetchDynamicLinks, isLoading: isLinksLoading } = useGetData(
+  const { data: fetchedDynamicLinks, refetch: refetchDynamicLinks, isLoading: isNormalLinksLoading } = useGetData(
     `/dynamic-link/get/${id}`
   );
-  const dynamicLinks = fetchedDynamicLinks?.data?.data || fetchedDynamicLinks?.data;
+
+  // States for superAdmin dropdown compilation
+  const [allAdmins, setAllAdmins] = useState([]);
+  const [allBaseLinks, setAllBaseLinks] = useState([]);
+  const [selectedAdminId, setSelectedAdminId] = useState("");
+  const [selectedAdminPosters, setSelectedAdminPosters] = useState([]);
+  const [postersLoading, setPostersLoading] = useState(false);
+
+  // Fetch all admins and compile all links if superAdmin is true
+  useEffect(() => {
+    if (superAdmin && id) {
+      axios.get(`${API_URL}/admin/list/${id}`).then(res => {
+        setAllAdmins(res?.data?.data || []);
+      }).catch(err => console.error(err));
+
+      const fetchAllLinks = async () => {
+        try {
+          const selfRes = await axios.get(`${API_URL}/link/get/${id}`);
+          let links = selfRes?.data?.users || selfRes?.users || [];
+
+          const adminsRes = await axios.get(`${API_URL}/admin/list/${id}`);
+          const admins = adminsRes?.data?.data || [];
+          admins.forEach(adminUser => {
+            if (Array.isArray(adminUser.links)) {
+              links = [...links, ...adminUser.links];
+            }
+          });
+
+          setAllBaseLinks(Array.from(new Set(links)));
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchAllLinks();
+    }
+  }, [superAdmin, id]);
+
+  // Fetch posters when selectedAdminId changes (superAdmin select flow)
+  useEffect(() => {
+    if (superAdmin && selectedAdminId) {
+      setPostersLoading(true);
+      axios.get(`${API_URL}/all/poster/${selectedAdminId}`).then(res => {
+        setSelectedAdminPosters(res?.data?.data?.posters || []);
+      }).catch(err => {
+        console.error(err);
+        setSelectedAdminPosters([]);
+      }).finally(() => {
+        setPostersLoading(false);
+      });
+    } else {
+      setSelectedAdminPosters([]);
+    }
+  }, [superAdmin, selectedAdminId]);
+
+  // Fetch posters if regular admin
+  const { data: ownPostersRes } = useGetData(
+    admin && !superAdmin ? `/all/poster/${id}` : null
+  );
+  const ownPosters = ownPostersRes?.data?.data?.posters || [];
+
+  // Options configuration
+  const baseLinkOptions = superAdmin ? allBaseLinks : (fetchedLinks || []);
+  const posterOptions = superAdmin ? selectedAdminPosters : (admin ? ownPosters : []);
+
+  // Fetch all dynamic links client-side for super admin
+  const [superAdminLinks, setSuperAdminLinks] = useState([]);
+  const [superAdminLinksLoading, setSuperAdminLinksLoading] = useState(false);
+
+  const fetchSuperAdminLinks = useCallback(async () => {
+    if (!superAdmin || !id) return;
+    setSuperAdminLinksLoading(true);
+    try {
+      const adminsRes = await axios.get(`${API_URL}/admin/list/${id}`);
+      const admins = adminsRes?.data?.data || [];
+
+      const selfRes = await axios.get(`${API_URL}/dynamic-link/get/${id}`);
+      let allLinks = selfRes?.data?.data || [];
+
+      const linkPromises = admins.map((adminUser) =>
+        axios.get(`${API_URL}/dynamic-link/get/${adminUser._id}`).catch((err) => null)
+      );
+      const linkResponses = await Promise.all(linkPromises);
+
+      linkResponses.forEach((res) => {
+        if (res?.data?.data) {
+          allLinks = [...allLinks, ...res.data.data];
+        }
+      });
+
+      const uniqueLinks = Array.from(
+        new Map(allLinks.map((l) => [l._id, l])).values()
+      );
+
+      uniqueLinks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setSuperAdminLinks(uniqueLinks);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSuperAdminLinksLoading(false);
+    }
+  }, [superAdmin, id]);
+
+  useEffect(() => {
+    if (superAdmin && id) {
+      fetchSuperAdminLinks();
+    }
+  }, [superAdmin, id, fetchedDynamicLinks, fetchSuperAdminLinks]);
+
+  const dynamicLinks = superAdmin ? superAdminLinks : (fetchedDynamicLinks?.data?.data || fetchedDynamicLinks?.data || []);
+  const isLinksLoading = isNormalLinksLoading || (superAdmin ? superAdminLinksLoading : false);
 
   const initialValues = {
     baseLink: "",
+    adminSelect: "",
+    posterSelect: "",
     path: "",
     theme: "Cash Green",
   };
 
-  const validate = Yup.object({
+  const validate = Yup.object().shape({
     baseLink: Yup.string().required("Base Link is required"),
     path: Yup.string().required("Path is required"),
     theme: Yup.string().required("Theme is required"),
+    adminSelect: superAdmin ? Yup.string().required("Admin is required") : Yup.string().nullable(),
+    posterSelect: (superAdmin || admin) ? Yup.string().required("User is required") : Yup.string().nullable(),
   });
 
   const handleSubmit = (values, formik) => {
@@ -172,10 +290,15 @@ function DynamicLinkForm({ id }) {
       return;
     }
 
+    let rootValue = id;
+    if (superAdmin || admin) {
+      rootValue = values.posterSelect;
+    }
+
     const submitValues = {
       linkName: combinedLinkName,
       targetUrl: "",
-      root: id,
+      root: rootValue,
       theme: values.theme,
     };
 
@@ -183,6 +306,7 @@ function DynamicLinkForm({ id }) {
       onSuccess: () => {
         toast.success("Dynamic link created/updated successfully");
         formik.resetForm();
+        setSelectedAdminId("");
         refetchDynamicLinks();
       },
     });
@@ -232,7 +356,7 @@ function DynamicLinkForm({ id }) {
                       value={formik.values.baseLink}
                     >
                       <option value="" disabled>Select a link</option>
-                      {Array.isArray(fetchedLinks) && fetchedLinks.map((link, i) => (
+                      {Array.isArray(baseLinkOptions) && baseLinkOptions.map((link, i) => (
                         <option key={i} value={link}>
                           {typeof link === 'string' ? link.split("https://").join("") : String(link)}
                         </option>
@@ -242,6 +366,57 @@ function DynamicLinkForm({ id }) {
                       <p className="text-xs text-red-600 mt-1">{formik.errors.baseLink}</p>
                     )}
                   </div>
+
+                  {superAdmin && (
+                    <div className="flex flex-col">
+                      <label className="font-semibold text-gray-600 mb-1">Select Admin *</label>
+                      <select
+                        name="adminSelect"
+                        className="p-2.5 w-full outline-none text-sm bg-gray-50 border border-gray-200 focus:border-gray-300 focus:shadow cursor-pointer"
+                        onChange={(e) => {
+                          formik.handleChange(e);
+                          formik.setFieldValue("posterSelect", ""); // Reset poster selection
+                          setSelectedAdminId(e.target.value);
+                        }}
+                        value={formik.values.adminSelect}
+                      >
+                        <option value="" disabled>Select an admin</option>
+                        {allAdmins.map((ad) => (
+                          <option key={ad._id} value={ad._id}>
+                            {ad.username}
+                          </option>
+                        ))}
+                      </select>
+                      {formik.errors.adminSelect && formik.touched.adminSelect && (
+                        <p className="text-xs text-red-600 mt-1">{formik.errors.adminSelect}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {(superAdmin || admin) && (
+                    <div className="flex flex-col">
+                      <label className="font-semibold text-gray-600 mb-1">Select User (Poster) *</label>
+                      <select
+                        name="posterSelect"
+                        className="p-2.5 w-full outline-none text-sm bg-gray-50 border border-gray-200 focus:border-gray-300 focus:shadow cursor-pointer"
+                        onChange={formik.handleChange}
+                        value={formik.values.posterSelect}
+                        disabled={superAdmin && !formik.values.adminSelect}
+                      >
+                        <option value="" disabled>
+                          {postersLoading ? "Loading users..." : "Select a user"}
+                        </option>
+                        {posterOptions.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.username}
+                          </option>
+                        ))}
+                      </select>
+                      {formik.errors.posterSelect && formik.touched.posterSelect && (
+                        <p className="text-xs text-red-600 mt-1">{formik.errors.posterSelect}</p>
+                      )}
+                    </div>
+                  )}
 
                   <TextField
                     label="Path (e.g. /rahim, /rcho) *"

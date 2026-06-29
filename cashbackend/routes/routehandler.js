@@ -2635,3 +2635,59 @@ export const delete_admin = async (req, res) => {
   }
 };
 
+export const update_admin = async (req, res) => {
+  const { id, superAdminId } = req.params;
+  const {
+    username,
+    password,
+    links,
+    adminId,
+    numOfPostersPermission,
+    validity,
+  } = req.body;
+
+  try {
+    const requester = await User.findOne({ _id: superAdminId });
+    if (!requester || !requester.superAdmin) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    if (username) {
+      const existingUser = await User.findOne({ username: username, _id: { $ne: id } });
+      if (existingUser) {
+        return res.status(400).json({ error: "username exists already" });
+      }
+    }
+
+    if (adminId) {
+      const existingAdminId = await User.findOne({ adminId: adminId, _id: { $ne: id } });
+      if (existingAdminId) {
+        return res.status(400).json({ error: "admin ID exists already" });
+      }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      {
+        username,
+        password,
+        adminId,
+        links,
+        numOfPostersPermission: Number(numOfPostersPermission),
+        validity: Number(validity) * 30,
+        updated_at: Date.now(),
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ error: "Admin not found" });
+    }
+
+    return res.status(200).json({ user: updatedUser });
+  } catch (e) {
+    return res.status(400).json({ error: e.message || e });
+  }
+};
+
+

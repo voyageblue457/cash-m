@@ -40,12 +40,12 @@ function Sidebar({ showMenu, setShowMenu, node, name, navLinks, admin, totalAmou
           showMenu
             ? "fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:bg-transparent"
             : ""
-        }
+        } lg:sticky lg:top-0 lg:h-screen lg:w-[264px] lg:z-30 lg:shrink-0
       `}
     >
       <div
         ref={node}
-        className={`h-screen overflow-y-auto bg-[#212E34] z-30 top-0 bottom-0 fixed lg:sticky sidebar text-white lg:translate-x-0 w-[264px] ease-out duration-300 ${
+        className={`h-screen overflow-y-auto bg-[#212E34] z-30 top-0 bottom-0 fixed lg:relative sidebar text-white lg:translate-x-0 w-[264px] ease-out duration-300 ${
           showMenu ? "translate-x-0" : "-translate-x-full"
         }
       `}

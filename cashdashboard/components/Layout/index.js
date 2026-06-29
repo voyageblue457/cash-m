@@ -79,7 +79,7 @@ function Layout({ children, heading }) {
       return links.filter((item) => item.name !== "Collections");
     }
     if (admin === false) {
-      return links.filter((item) => item.name !== "Users");
+      return links.filter((item) => item.name !== "Users" && item.name !== "Payment Links");
     }
     return links;
   };
@@ -98,7 +98,7 @@ function Layout({ children, heading }) {
 
   return (
     <>
-      <div className="lg:flex">
+      <div className="lg:flex min-h-screen">
         <Sidebar
           showMenu={showMenu}
           setShowMenu={setShowMenu}
@@ -108,7 +108,7 @@ function Layout({ children, heading }) {
           totalAmount={amountSummary?.data?.total}
         />
 
-        <div className="lg:flex-1">
+        <div className="lg:flex-1 min-w-0">
           <Header
             admin={admin}
             username={username}
@@ -116,7 +116,7 @@ function Layout({ children, heading }) {
             setShowMenu={setShowMenu}
           />
 
-          <div className="py-5 px-2 lg:px-5">
+          <div className="py-5 px-2 lg:px-5 max-w-7xl mx-auto w-full">
             {/* <PageHeading /> */}
 
             {children}
