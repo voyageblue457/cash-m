@@ -84,7 +84,7 @@ export const config = {
     "/users",
     "/id-card",
     "/link",
-    "/links",
+    "/payment-links",
     "/amount",
     "/withdraw",
     "/admins",

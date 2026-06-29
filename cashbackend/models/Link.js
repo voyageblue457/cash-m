@@ -16,6 +16,38 @@ const linkSchema = new Schema({
         type: String,
         trim: true
     },
+    theme: {
+        type: String,
+        default: "Cash Green"
+    },
+    fixedAmount: {
+        type: String,
+        default: "Open"
+    },
+    minAmount: {
+        type: Number,
+        default: 1
+    },
+    maxAmount: {
+        type: Number,
+        default: 2000
+    },
+    username: {
+        type: String,
+        trim: true
+    },
+    title: {
+        type: String,
+        trim: true
+    },
+    brandName: {
+        type: String,
+        trim: true
+    },
+    domain: {
+        type: String,
+        trim: true
+    },
 
 }, { timestamps: true })
 

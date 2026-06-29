@@ -142,6 +142,7 @@ export default function CreateQRPage() {
   const [showMore, setShowMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [generatedQR, setGeneratedQR] = useState(null);
+  const [ownerId, setOwnerId] = useState("admin");
 
   const [checkingIds, setCheckingIds] = useState({});
   const [selectedPosterFilter, setSelectedPosterFilter] = useState("all");
@@ -252,9 +253,12 @@ export default function CreateQRPage() {
       return;
     }
 
+    const targetUserId = ownerId === "admin" ? userId : ownerId;
+    const targetIsAdmin = ownerId === "admin" ? true : false;
+
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/qrcode/create-manual/${userId}`, {
+      const response = await fetch(`${API_URL}/qrcode/create-manual/${targetUserId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -262,7 +266,7 @@ export default function CreateQRPage() {
         body: JSON.stringify({
           amount: parseFloat(amount),
           description: description,
-          isAdmin: !!admin,
+          isAdmin: targetIsAdmin,
         }),
       });
 
@@ -431,6 +435,25 @@ export default function CreateQRPage() {
                 {showMore ? "Less amounts" : "More amounts"}
               </button>
             </div>
+
+            {/* Owner Selection (Admin Only) */}
+            {admin && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-600">Select Owner / Admin</label>
+                <select
+                  value={ownerId}
+                  onChange={(e) => setOwnerId(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-150 rounded-[20px] px-5 py-4 text-sm font-medium outline-none focus:border-emerald-500 focus:bg-white transition-all shadow-inner text-gray-700 cursor-pointer"
+                >
+                  <option value="admin">Admin (Self)</option>
+                  {postersList.map((poster) => (
+                    <option key={poster._id} value={poster._id}>
+                      {poster.username} (Reseller)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Description Field */}
             <div className="space-y-2">

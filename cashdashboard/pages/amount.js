@@ -17,9 +17,9 @@ const getAmountColumn = (admin, posterUsername, handleCheckStatus, checkingIds) 
       width: "auto",
     },
     admin && {
-      Header: "Username",
-      accessor: (row) => row.root?.username || (admin ? "Admin" : (posterUsername || "Admin")),
-      id: "username",
+      Header: "Owner",
+      accessor: (row) => row.root?.username || "Admin",
+      id: "owner",
       width: "auto",
       Cell: ({ row, value }) => {
         const posterIdVal = row.original.root?._id || row.original.poster || row.original.posterId;
@@ -34,6 +34,13 @@ const getAmountColumn = (admin, posterUsername, handleCheckStatus, checkingIds) 
         }
         return <span>{value}</span>;
       }
+    },
+    admin && {
+      Header: "Admin",
+      accessor: (row) => row.adminName || "Admin",
+      id: "adminName",
+      width: "auto",
+      Cell: ({ value }) => <span className="font-semibold text-gray-700">{value}</span>
     },
     {
       Header: "Amount",

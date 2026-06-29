@@ -190,6 +190,8 @@ const WithdrawModule = ({ id, admin }) => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
+                    {admin && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>}
+                    {admin && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin</th>}
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -199,6 +201,23 @@ const WithdrawModule = ({ id, admin }) => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {withdraws.map((w) => (
                     <tr key={w._id}>
+                      {admin && (
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-700">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              w.owner?.type === 'Admin' ? 'bg-cyan-100 text-cyan-800' : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {w.owner?.type || 'Reseller'}
+                            </span>
+                            <span>{w.owner?.name || 'Admin'}</span>
+                          </div>
+                        </td>
+                      )}
+                      {admin && (
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-medium">
+                          {w.admin?.name || 'Admin'}
+                        </td>
+                      )}
                       <td className="px-4 py-3 whitespace-nowrap font-bold text-gray-800">
                         ${w.amount.toFixed(2)}
                       </td>

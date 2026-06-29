@@ -13,9 +13,9 @@ function Cards() {
       link: "/#click",
     },
     {
-      title: "Links",
+      title: "Payment Links",
       count: 10,
-      link: "/links",
+      link: "/payment-links",
     },
     {
       title: "ID Card",

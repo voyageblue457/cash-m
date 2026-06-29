@@ -1,7 +1,7 @@
 import mongoose  from 'mongoose'
 
 
-const mongouri = process.env.MONGODB_URI || "mongodb://mostak009:mostak00008@31.97.181.120:27017/mosapp?replicaSet=rs0&authSource=mosapp"
+const mongouri = process.env.MONGODB_URI 
 
 const connectDB = () => {
 
