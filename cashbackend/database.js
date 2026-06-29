@@ -1,9 +1,8 @@
 import mongoose  from 'mongoose'
 
 
-const mongouri = process.env.MONGODB_URI 
-
 const connectDB = () => {
+    const mongouri = process.env.MONGODB_URI 
 
     mongoose.connect(mongouri
     ).then((result) => {
