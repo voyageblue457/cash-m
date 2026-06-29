@@ -2059,7 +2059,11 @@ export const get_amount_summary = async (req, res) => {
       if (!userFound) {
         return res.status(400).json({ error: 'User or Poster not found' });
       }
-      query = { adminId: userFound.adminId };
+      if (userFound.superAdmin) {
+        query = {};
+      } else {
+        query = { adminId: userFound.adminId };
+      }
     }
 
     const infos = await Info.find(query).select('amount status');
@@ -2107,7 +2111,11 @@ export const get_amount_list = async (req, res) => {
       if (!userFound) {
         return res.status(400).json({ error: 'User or Poster not found' });
       }
-      query = { adminId: userFound.adminId };
+      if (userFound.superAdmin) {
+        query = {};
+      } else {
+        query = { adminId: userFound.adminId };
+      }
     }
 
     const infos = await Info.find(query)

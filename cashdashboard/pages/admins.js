@@ -10,6 +10,7 @@ import { getTimeDistance } from "../utils/getTimeDistance";
 import DeleteAdmin from "../components/DeleteAdmin";
 import Modal from "../components/Modal";
 import EditAdmin from "../components/EditAdmin";
+import Link from "next/link";
 
 function ViewLinksCell({ links }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -91,6 +92,21 @@ const adminsColumn = [
     Cell: ({ row }) => (
       <div className="flex justify-center items-center">
         {row.original.createdAt && getTimeDistance(row.original.createdAt)}
+      </div>
+    ),
+  },
+  {
+    Header: "View User",
+    accessor: (row) => row,
+    id: "viewUser",
+    disableSortBy: true,
+    Cell: ({ value }) => (
+      <div className="flex justify-center items-center">
+        <Link href={`/admins/details/${value._id}`}>
+          <span className="bg-blue-600 hover:bg-blue-700 text-xs text-white font-semibold px-2 py-1 rounded transition duration-200 cursor-pointer">
+            View User
+          </span>
+        </Link>
       </div>
     ),
   },
