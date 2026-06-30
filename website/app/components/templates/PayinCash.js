@@ -16,7 +16,8 @@ export default function PayinCash({
   setShowMore,
   getLogoLetter,
   AMOUNTS,
-  MORE_AMOUNTS
+  MORE_AMOUNTS,
+  param2
 }) {
   return (
     <div className="w-full max-w-[390px] flex flex-col items-center select-none py-2 text-gray-800">
@@ -28,7 +29,7 @@ export default function PayinCash({
         </div>
 
         <h1 className="text-xl font-bold tracking-tight text-gray-900 mb-2">
-          Payin Cash
+          {param2 || "Payin Cash"}
         </h1>
 
         <div className="flex items-center gap-1 bg-emerald-50 text-[#05b875] px-3 py-1 rounded-full text-xs font-bold border border-emerald-100 mb-6">

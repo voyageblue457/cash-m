@@ -9,7 +9,8 @@ export default function CashGreen({
   loading,
   handlePayNow,
   handleKeypadPress,
-  getLogoLetter
+  getLogoLetter,
+  param2
 }) {
   return (
     <div className="w-full max-w-[390px] flex flex-col items-center select-none py-2 text-white">
@@ -23,7 +24,7 @@ export default function CashGreen({
         </div>
         <div className="flex flex-col items-center text-center">
           <span className="font-extrabold text-sm tracking-wide mb-1">
-            Cash Green
+            {param2 || "Cash Green"}
           </span>
           <span className="flex items-center gap-1 bg-[#00b029] px-2.5 py-0.5 rounded-full text-[9px] font-bold border border-white/20">
             <FaCheck className="text-[8px]" />

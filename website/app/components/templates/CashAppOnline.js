@@ -12,7 +12,8 @@ export default function CashAppOnline({
   handleAmountClick,
   handleCustomAmountChange,
   showMore,
-  setShowMore
+  setShowMore,
+  param2
 }) {
   return (
     <div className="w-full max-w-[390px] flex flex-col items-center select-none py-2 text-gray-800">
@@ -20,7 +21,7 @@ export default function CashAppOnline({
         <div className="w-12 h-1 bg-gray-200 rounded-full mb-4"></div>
 
         <h1 className="text-lg font-black text-gray-800 tracking-tight mb-2">
-          Pay {brand}
+          {param2 || `Pay ${brand}`}
         </h1>
 
         <div className="flex items-center gap-1 bg-[#ccf7e1] text-[#00b0ff] px-3 py-0.5 rounded-full text-[10px] font-bold border border-emerald-100 mb-5">

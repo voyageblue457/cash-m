@@ -215,7 +215,8 @@ export default function Home({ adminId, posterId, param, param2, linkConfig }) {
     setShowMore,
     getLogoLetter,
     AMOUNTS,
-    MORE_AMOUNTS
+    MORE_AMOUNTS,
+    param2
   };
 
   const renderTemplate = () => {

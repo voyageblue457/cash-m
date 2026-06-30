@@ -9,7 +9,8 @@ export default function CashAppDark({
   loading,
   handlePayNow,
   handleKeypadPress,
-  getLogoLetter
+  getLogoLetter,
+  param2
 }) {
   return (
     <div className="w-full max-w-[390px] flex flex-col items-center select-none py-2 text-white">
@@ -23,7 +24,7 @@ export default function CashAppDark({
         </div>
         <div className="flex flex-col items-center text-center">
           <span className="font-extrabold text-sm tracking-wide mb-1 text-[#00E676]">
-            Pay ${displayUsername || "theme-preview-cashapp-dark"}
+            {param2 || `Pay $${displayUsername || "theme-preview-cashapp-dark"}`}
           </span>
           <span className="flex items-center gap-1 bg-[#1b2e21] text-[#00E676] px-2.5 py-0.5 rounded-full text-[9px] font-bold border border-[#22332a]">
             <FaCheck className="text-[8px]" />

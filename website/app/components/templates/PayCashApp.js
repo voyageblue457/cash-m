@@ -13,7 +13,8 @@ export default function PayCashApp({
   handlePayNow,
   handleAmountClick,
   handleCustomAmountChange,
-  getLogoLetter
+  getLogoLetter,
+  param2
 }) {
   return (
     <div className="w-full max-w-[390px] flex flex-col items-center select-none py-2 text-gray-800">
@@ -22,7 +23,7 @@ export default function PayCashApp({
           {getLogoLetter()}
         </div>
         <h2 className="text-base font-black text-gray-900">
-          @{displayUsername || "theme-preview-pay-cash-app"}
+          {param2 || `@${displayUsername || "theme-preview-pay-cash-app"}`}
         </h2>
         <p className="text-[10px] text-gray-400 font-bold max-w-[240px] mt-1 leading-normal">
           Do not send Cash App to this name.<br />Tap Pay now below to pay.

@@ -9,7 +9,8 @@ export default function PayIsla({
   loading,
   handlePayNow,
   handleKeypadPress,
-  getLogoLetter
+  getLogoLetter,
+  param2
 }) {
   return (
     <div className="w-full max-w-[390px] flex flex-col items-center select-none py-2 text-white">
@@ -23,7 +24,7 @@ export default function PayIsla({
         </div>
         <div className="flex flex-col items-center text-center">
           <span className="font-extrabold text-sm tracking-wide mb-1 text-emerald-100">
-            Pay {brand || "Isla"}
+            {param2 || `Pay ${brand || "Isla"}`}
           </span>
           <span className="flex items-center gap-1 bg-[#0c261b] text-emerald-300 px-2.5 py-0.5 rounded-full text-[9px] font-bold border border-emerald-800/40">
             <FaCheck className="text-[8px]" />
