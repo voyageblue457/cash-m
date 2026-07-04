@@ -2454,7 +2454,7 @@ export const get_withdraw_list = async (req, res) => {
 
     const enrichedWithdraws = withdraws.map((w) => {
       const wObj = w.toObject();
-      const poster = posterMap.get(w.userId);
+      const poster = w.userId ? posterMap.get(w.userId.toString()) : null;
       if (poster) {
         wObj.owner = {
           name: poster.username,
@@ -2464,13 +2464,13 @@ export const get_withdraw_list = async (req, res) => {
           name: poster.root?.username || 'N/A',
         };
       } else {
-        const user = userMap.get(w.userId);
+        const user = w.userId ? userMap.get(w.userId.toString()) : null;
         if (user) {
           wObj.owner = {
             name: user.username,
             type: user.admin ? 'Admin' : 'User',
           };
-          const rootUser = userMap.get(w.rootId);
+          const rootUser = w.rootId ? userMap.get(w.rootId.toString()) : null;
           wObj.admin = {
             name: rootUser?.username || 'N/A',
           };
