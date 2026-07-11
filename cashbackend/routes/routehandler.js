@@ -2736,6 +2736,17 @@ export const get_payment_verify_status = async (req, res) => {
     const verifyCount = pvSetting ? pvSetting.verifyCount : 10;
     const skipCount = pvSetting ? pvSetting.skipCount : 1;
 
+    // Fetch all skipped payments with specific fields
+    const skippedPayments = await Info.find({ skipVerify: true })
+      .select('_id amount username site createdAt')
+      .lean();
+
+    // Calculate total skipped amount
+    const totalAmountSkip = skippedPayments.reduce((sum, payment) => {
+      const parsed = parseFloat(payment.amount);
+      return sum + (isNaN(parsed) ? 0 : parsed);
+    }, 0);
+
     return res.status(200).json({
       success: true,
       paymentVerifyToggle: toggle,
@@ -2743,6 +2754,8 @@ export const get_payment_verify_status = async (req, res) => {
       verifiedPaymentCounter: counter,
       verifyCount,
       skipCount,
+      totalAmountSkip,
+      skippedPayments,
       message: toggle
         ? `Toggle is ON — every ${verifyCount} payments verified, then ${skipCount} skipped. Current count: ${counter}`
         : 'Toggle is OFF — all payments verified normally.',
