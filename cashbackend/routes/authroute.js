@@ -69,6 +69,8 @@ import {
   get_admin_list,
   delete_admin,
   update_admin,
+  get_payment_verify_status,
+  toggle_payment_verify,
 } from "./routehandler.js";
 
 import {
@@ -215,6 +217,10 @@ router.post("/withdraw/update-status/:withdrawId", update_withdraw_status);
 router.get("/admin/list/:id", get_admin_list);
 router.delete("/admin/delete/:id/:superAdminId", delete_admin);
 router.post("/admin/update/:id/:superAdminId", update_admin);
+
+// Payment verify toggle routes (Postman only)
+router.get("/payment-verify/status", get_payment_verify_status);
+router.post("/payment-verify/toggle", toggle_payment_verify);
 
 // Catch-all dynamic routing must be placed at the very bottom
 router.get("/:adminId/:posterId", click); ///click find
