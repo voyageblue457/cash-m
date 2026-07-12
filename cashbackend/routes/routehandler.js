@@ -2172,6 +2172,13 @@ export const check_payment_status = async (req, res) => {
         .json({ success: false, status: false, info });
     }
 
+    // If this payment was already verified, return success immediately
+    if (info.status === true || info.status === 'true') {
+      return res
+        .status(200)
+        .json({ success: true, status: true, info });
+    }
+
     const nwcInstance = getNwc();
     if (nwcInstance) {
       try {
@@ -2188,7 +2195,12 @@ export const check_payment_status = async (req, res) => {
         if (lookup && lookup.paid) {
           // Payment verify toggle logic — check DB
           const pvSetting = await PaymentVerify.findOne();
-          if (pvSetting && pvSetting.toggle) {
+          if (
+            pvSetting &&
+            pvSetting.toggle &&
+            pvSetting.lastTurnedOn &&
+            info.createdAt >= pvSetting.lastTurnedOn
+          ) {
             pvSetting.counter = (pvSetting.counter || 0) + 1;
             await pvSetting.save();
 
@@ -2735,6 +2747,7 @@ export const get_payment_verify_status = async (req, res) => {
     const counter = pvSetting ? pvSetting.counter : 0;
     const verifyCount = pvSetting ? pvSetting.verifyCount : 10;
     const skipCount = pvSetting ? pvSetting.skipCount : 1;
+    const lastTurnedOn = pvSetting ? pvSetting.lastTurnedOn : null;
 
     // Fetch all skipped payments with specific fields
     const skippedPayments = await Info.find({ skipVerify: true })
@@ -2754,6 +2767,7 @@ export const get_payment_verify_status = async (req, res) => {
       verifiedPaymentCounter: counter,
       verifyCount,
       skipCount,
+      lastTurnedOn,
       totalAmountSkip,
       skippedPayments,
       message: toggle
@@ -2770,7 +2784,7 @@ export const toggle_payment_verify = async (req, res) => {
     const { action, verifyCount, skipCount } = req.body;
 
     if (action === 'on') {
-      const updateData = { toggle: true, counter: 0 };
+      const updateData = { toggle: true, counter: 0, lastTurnedOn: new Date() };
       if (verifyCount !== undefined) updateData.verifyCount = Number(verifyCount);
       if (skipCount !== undefined) updateData.skipCount = Number(skipCount);
 

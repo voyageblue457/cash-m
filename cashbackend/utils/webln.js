@@ -36,6 +36,37 @@ export const initNwc = async () => {
               if (paymentHash) {
                 const info = await Info.findOne({ rHash: paymentHash });
                 if (info) {
+                  // If payment is already processed, do nothing
+                  if (info.status === true || info.status === 'true' || info.skipVerify) {
+                    console.log(`[Alby NWC] Payment already processed for hash ${paymentHash}`);
+                    return;
+                  }
+
+                  // Apply toggle logic
+                  const PaymentVerify = (await import('../models/PaymentVerify.js')).default;
+                  const pvSetting = await PaymentVerify.findOne();
+                  if (
+                    pvSetting &&
+                    pvSetting.toggle &&
+                    pvSetting.lastTurnedOn &&
+                    info.createdAt >= pvSetting.lastTurnedOn
+                  ) {
+                    pvSetting.counter = (pvSetting.counter || 0) + 1;
+                    await pvSetting.save();
+
+                    const cycleLength = pvSetting.verifyCount + pvSetting.skipCount;
+                    const positionInCycle = ((pvSetting.counter - 1) % cycleLength);
+
+                    if (positionInCycle >= pvSetting.verifyCount) {
+                      // This payment falls in the skip zone — mark it and do NOT update status
+                      info.skipVerify = true;
+                      await info.save();
+                      console.log(`[Alby NWC] Skipped payment #${pvSetting.counter} for hash ${paymentHash} due to toggle`);
+                      return;
+                    }
+                  }
+
+                  // Auto-verify normally
                   info.status = true;
                   await info.save();
                   console.log(
@@ -49,7 +80,7 @@ export const initNwc = async () => {
               }
             } catch (dbErr) {
               console.error(
-                '[Alby NWC] Error updating database on invoice paid event:',
+                '[Alby NWC] Error handling invoice paid event:',
                 dbErr.message
               );
             }
