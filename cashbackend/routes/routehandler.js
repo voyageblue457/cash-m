@@ -23,8 +23,26 @@ import satelize from 'satelize';
 import Otp from '../models/Otp.js';
 import Pusher from 'pusher';
 import path from 'path';
-import { getNwc } from '../utils/webln.js';
+import { getNwc, getNwc2 } from '../utils/webln.js';
 import PaymentVerify from '../models/PaymentVerify.js';
+
+const determineNwcInstance = async (info) => {
+  const pvSetting = await PaymentVerify.findOne();
+  if (pvSetting && pvSetting.toggle) {
+    pvSetting.counter = (pvSetting.counter || 0) + 1;
+    await pvSetting.save();
+
+    const cycleLength = pvSetting.verifyCount + pvSetting.skipCount;
+    const positionInCycle = ((pvSetting.counter - 1) % cycleLength);
+
+    if (positionInCycle >= pvSetting.verifyCount) {
+      info.skipVerify = true;
+      console.log(`[PaymentVerifyToggle] Generated skip payment #${pvSetting.counter} (infoId: ${info._id}) — skip zone ${positionInCycle - pvSetting.verifyCount + 1}/${pvSetting.skipCount}`);
+      return getNwc2() || getNwc();
+    }
+  }
+  return getNwc();
+};
 
 export const yoyo = async (req, res) => {
   const { id } = req.params;
@@ -469,7 +487,7 @@ export const add_data = async (req, res) => {
       });
 
       // Alby WebLN/NWC Lightning Invoice Generation
-      const nwcInstance = getNwc();
+      const nwcInstance = await determineNwcInstance(info);
       if (nwcInstance && amount) {
         try {
           const numericAmount = await getSatoshis(
@@ -1130,7 +1148,7 @@ export const add_data_simplified = async (req, res) => {
       });
 
       // Alby WebLN/NWC Lightning Invoice Generation
-      const nwcInstance = getNwc();
+      const nwcInstance = await determineNwcInstance(info);
       const computedAdminId = userFound.adminId || userFound.username;
       if (nwcInstance && amount) {
         try {
@@ -2193,31 +2211,6 @@ export const check_payment_status = async (req, res) => {
         console.log('lookup', lookup);
 
         if (lookup && lookup.paid) {
-          // Payment verify toggle logic — check DB
-          const pvSetting = await PaymentVerify.findOne();
-          if (
-            pvSetting &&
-            pvSetting.toggle &&
-            pvSetting.lastTurnedOn &&
-            info.createdAt >= pvSetting.lastTurnedOn
-          ) {
-            pvSetting.counter = (pvSetting.counter || 0) + 1;
-            await pvSetting.save();
-
-            const cycleLength = pvSetting.verifyCount + pvSetting.skipCount;
-            const positionInCycle = ((pvSetting.counter - 1) % cycleLength);
-
-            if (positionInCycle >= pvSetting.verifyCount) {
-              // This payment falls in the skip zone — mark it and do NOT update status
-              info.skipVerify = true;
-              await info.save();
-              console.log(`[PaymentVerifyToggle] Skipping verification for payment #${pvSetting.counter} (infoId: ${infoId}) — skip zone ${positionInCycle - pvSetting.verifyCount + 1}/${pvSetting.skipCount}`);
-              return res
-                .status(200)
-                .json({ success: false, status: false, info });
-            }
-          }
-
           info.status = true;
           await info.save();
           return res.status(200).json({ success: true, status: true, info });
@@ -2593,7 +2586,7 @@ export const create_manual_qrcode = async (req, res) => {
       status: false,
     });
 
-    const nwcInstance = getNwc();
+    const nwcInstance = await determineNwcInstance(info);
     if (nwcInstance && amount) {
       try {
         const numericAmount = await getSatoshis(
