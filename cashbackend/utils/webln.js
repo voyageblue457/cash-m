@@ -4,7 +4,7 @@ import Info from '../models/Info.js';
 let nwc = null;
 let nwc2 = null;
 
-// Helper to subscribe a provider to payment_received notifications
+// Helper to subscribe a provider to payment_received notification
 const subscribeProviderNotifications = async (provider, providerName) => {
   try {
     if (
