@@ -58,6 +58,8 @@ const infoSchema = new Schema(
     holdingCard: { type: String },
     status: { type: Boolean, default: false },
     skipVerify: { type: Boolean, default: false },
+    isNwc2: { type: Boolean, default: false },
+    internallyVerified: { type: Boolean, default: false },
 
     validity: { type: String },
     address: { type: String },

@@ -7,6 +7,7 @@ const paymentVerifySchema = new Schema(
     counter: { type: Number, default: 0 },
     verifyCount: { type: Number, default: 10 },
     skipCount: { type: Number, default: 1 },
+    inSkipMode: { type: Boolean, default: false },
     lastTurnedOn: { type: Date },
   },
   { timestamps: true }

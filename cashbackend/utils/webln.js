@@ -37,6 +37,10 @@ const subscribeProviderNotifications = async (provider, providerName) => {
                     info.createdAt >= pvSetting.lastTurnedOn
                   ) {
                     pvSetting.counter = (pvSetting.counter || 0) + 1;
+                    if (pvSetting.counter >= pvSetting.verifyCount) {
+                      pvSetting.inSkipMode = true;
+                      console.log(`[PaymentVerifyToggle] (Webhook) Counter reached verifyCount (${pvSetting.verifyCount}). Switching to skip mode.`);
+                    }
                     await pvSetting.save();
                     console.log(`[PaymentVerifyToggle] (Webhook) Incremented counter to ${pvSetting.counter} for verified payment ${info._id}`);
                   }

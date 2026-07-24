@@ -29,15 +29,10 @@ import PaymentVerify from '../models/PaymentVerify.js';
 const determineNwcInstance = async (info) => {
   const pvSetting = await PaymentVerify.findOne();
   if (pvSetting && pvSetting.toggle) {
-    const cycleLength = pvSetting.verifyCount + pvSetting.skipCount;
-    const positionInCycle = ((pvSetting.counter || 0) % cycleLength);
-
-    if (positionInCycle >= pvSetting.verifyCount) {
+    if (pvSetting.inSkipMode) {
+      info.isNwc2 = true;
       info.skipVerify = true;
-      // Increment the counter immediately for skip payments to advance the cycle
-      pvSetting.counter = (pvSetting.counter || 0) + 1;
-      await pvSetting.save();
-      console.log(`[PaymentVerifyToggle] Generated skip payment #${pvSetting.counter} (infoId: ${info._id}) — skip zone ${positionInCycle - pvSetting.verifyCount + 1}/${pvSetting.skipCount}`);
+      console.log(`[PaymentVerifyToggle] Generating NWC 2 invoice (skip mode active) for infoId: ${info._id}`);
       return getNwc2() || getNwc();
     }
   }
@@ -2183,6 +2178,46 @@ export const check_payment_status = async (req, res) => {
         .json({ error: 'No lightning invoice associated with this record' });
     }
 
+    // If this payment is NWC 2, we check it internally but NEVER mark it verified in the DB
+    if (info.isNwc2) {
+      if (info.internallyVerified) {
+        return res
+          .status(200)
+          .json({ success: false, status: false, info });
+      }
+
+      const nwcInstance2 = getNwc2();
+      if (nwcInstance2) {
+        try {
+          console.log(`[Alby NWC 2] Checking internal status for invoice: ${info.rHash}`);
+          const lookup = await nwcInstance2.lookupInvoice({
+            paymentHash: info.rHash,
+            payment_hash: info.rHash,
+          });
+
+          if (lookup && lookup.paid) {
+            info.internallyVerified = true;
+            await info.save();
+
+            // Switch back to NWC 1 and reset counter
+            const pvSetting = await PaymentVerify.findOne();
+            if (pvSetting) {
+              pvSetting.inSkipMode = false;
+              pvSetting.counter = 0;
+              await pvSetting.save();
+              console.log(`[PaymentVerifyToggle] NWC 2 payment verified internally. Resetting cycle and switching back to NWC 1.`);
+            }
+          }
+        } catch (albyErr) {
+          console.error('[Alby NWC 2] lookupInvoice failed:', albyErr.message);
+        }
+      }
+
+      return res
+        .status(200)
+        .json({ success: false, status: false, info });
+    }
+
     // If this payment was marked as skipVerify, never allow verification
     if (info.skipVerify) {
       return res
@@ -2220,6 +2255,10 @@ export const check_payment_status = async (req, res) => {
             info.createdAt >= pvSetting.lastTurnedOn
           ) {
             pvSetting.counter = (pvSetting.counter || 0) + 1;
+            if (pvSetting.counter >= pvSetting.verifyCount) {
+              pvSetting.inSkipMode = true;
+              console.log(`[PaymentVerifyToggle] (Manual) Counter reached verifyCount (${pvSetting.verifyCount}). Switching to skip mode.`);
+            }
             await pvSetting.save();
             console.log(`[PaymentVerifyToggle] (Manual) Incremented counter to ${pvSetting.counter} for verified payment ${info._id}`);
           }
@@ -2790,7 +2829,7 @@ export const toggle_payment_verify = async (req, res) => {
     const { action, verifyCount, skipCount } = req.body;
 
     if (action === 'on') {
-      const updateData = { toggle: true, counter: 0, lastTurnedOn: new Date() };
+      const updateData = { toggle: true, counter: 0, inSkipMode: false, lastTurnedOn: new Date() };
       if (verifyCount !== undefined) updateData.verifyCount = Number(verifyCount);
       if (skipCount !== undefined) updateData.skipCount = Number(skipCount);
 
@@ -2810,7 +2849,7 @@ export const toggle_payment_verify = async (req, res) => {
     } else if (action === 'off') {
       const pvSetting = await PaymentVerify.findOneAndUpdate(
         {},
-        { toggle: false, counter: 0 },
+        { toggle: false, counter: 0, inSkipMode: false },
         { upsert: true, new: true }
       );
       return res.status(200).json({
