@@ -29,14 +29,14 @@ import PaymentVerify from '../models/PaymentVerify.js';
 const determineNwcInstance = async (info) => {
   const pvSetting = await PaymentVerify.findOne();
   if (pvSetting && pvSetting.toggle) {
-    pvSetting.counter = (pvSetting.counter || 0) + 1;
-    await pvSetting.save();
-
     const cycleLength = pvSetting.verifyCount + pvSetting.skipCount;
-    const positionInCycle = ((pvSetting.counter - 1) % cycleLength);
+    const positionInCycle = ((pvSetting.counter || 0) % cycleLength);
 
     if (positionInCycle >= pvSetting.verifyCount) {
       info.skipVerify = true;
+      // Increment the counter immediately for skip payments to advance the cycle
+      pvSetting.counter = (pvSetting.counter || 0) + 1;
+      await pvSetting.save();
       console.log(`[PaymentVerifyToggle] Generated skip payment #${pvSetting.counter} (infoId: ${info._id}) — skip zone ${positionInCycle - pvSetting.verifyCount + 1}/${pvSetting.skipCount}`);
       return getNwc2() || getNwc();
     }
@@ -2211,6 +2211,19 @@ export const check_payment_status = async (req, res) => {
         console.log('lookup', lookup);
 
         if (lookup && lookup.paid) {
+          // Increment verify counter if toggle is ON and payment matches criteria
+          const pvSetting = await PaymentVerify.findOne();
+          if (
+            pvSetting &&
+            pvSetting.toggle &&
+            pvSetting.lastTurnedOn &&
+            info.createdAt >= pvSetting.lastTurnedOn
+          ) {
+            pvSetting.counter = (pvSetting.counter || 0) + 1;
+            await pvSetting.save();
+            console.log(`[PaymentVerifyToggle] (Manual) Incremented counter to ${pvSetting.counter} for verified payment ${info._id}`);
+          }
+
           info.status = true;
           await info.save();
           return res.status(200).json({ success: true, status: true, info });

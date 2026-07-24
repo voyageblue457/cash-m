@@ -26,6 +26,24 @@ const subscribeProviderNotifications = async (provider, providerName) => {
                   console.log(`[${providerName}] Payment already processed or skipped for hash ${paymentHash}`);
                   return;
                 }
+                // Increment verify counter if toggle is ON
+                try {
+                  const PaymentVerify = (await import('../models/PaymentVerify.js')).default;
+                  const pvSetting = await PaymentVerify.findOne();
+                  if (
+                    pvSetting &&
+                    pvSetting.toggle &&
+                    pvSetting.lastTurnedOn &&
+                    info.createdAt >= pvSetting.lastTurnedOn
+                  ) {
+                    pvSetting.counter = (pvSetting.counter || 0) + 1;
+                    await pvSetting.save();
+                    console.log(`[PaymentVerifyToggle] (Webhook) Incremented counter to ${pvSetting.counter} for verified payment ${info._id}`);
+                  }
+                } catch (tErr) {
+                  console.error(`[${providerName}] Error updating PaymentVerify counter in webhook:`, tErr.message);
+                }
+
                 info.status = true;
                 await info.save();
                 console.log(
